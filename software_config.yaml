@@ -1,0 +1,3 @@
+img_path: /home/maxwell/Downloads/temp/summer
+shapmap_path: /home/maxwell/coco_sematic_eval/deepshap_yolov5m
+lbl_path : /home/maxwell/coco/my_labels

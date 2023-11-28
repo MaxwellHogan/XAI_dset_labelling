@@ -1,0 +1,45 @@
+{% extends 'main.html' %}
+
+{% block content %}
+{% load static %}
+<style>
+    .feature-ann-container{
+        display: grid;
+        /* below is how to create two columns - one small column 1 fraction (1/4) the size of the page */
+        grid-template-columns: 1fr 1fr;  
+    }
+</style>
+
+
+<div class="feature-ann-container">
+    <div>
+        <!-- image here -->
+        <img src={{img}}></img> 
+    </div>
+    <div>
+        <!-- forms here -->
+        <form method="POST" enctype="multipart/form-data"> 
+            
+            <!-- Management data of formset -->
+            {{ formset.management_data }} 
+        
+            <!-- Security token -->
+            {% csrf_token %} 
+        
+            <!-- Using the formset -->
+            <!-- {{ formset.as_p }}  -->
+            {% for form in formset.forms %}
+                <h2>Labels for object {{ forloop.counter0 }}:</h2>
+                {{ form.as_p }}
+                {% if not forloop.last %}
+                    <hr/>
+                {% endif %}
+            {% endfor %}
+            
+            <input type="submit" value="Submit"> 
+        </form> 
+    </div>
+</div>
+<div><img src="{% static 'images/CAR_TYPES.png' %}" /></div>
+
+{% endblock content%}

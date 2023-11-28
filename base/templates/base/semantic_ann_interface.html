@@ -1,0 +1,28 @@
+{% extends 'main.html' %}
+
+{% block content %}
+    <style>
+        .semantic-ann-container{
+            display: grid;
+            /* below is how to create two columns - one small column 1 fraction (1/4) the size of the page */
+            grid-template-columns: 3fr 1fr;  
+        }
+    </style>
+
+    <div class="semantic-ann-container">
+
+        <div>
+            {% load plotly_dash %}
+            <div class="{% plotly_class name='semantic_annotation' %}">
+                {% plotly_app name='semantic_annotation' ratio=1 initial_arguments=dash_context %}
+            </div>
+            {{ plot1 | safe }}
+        </div>
+        <div>
+            <a href="{% url 'discriminative_feature_page' img_id %}">Complete Selection</a>
+        </div>
+
+    </div>
+
+
+{% endblock content%}
