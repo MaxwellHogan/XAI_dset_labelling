@@ -23,7 +23,10 @@ from base.models import DSet_object, Dset_Instance
 
 img_fn = ""
 fig = px.imshow(np.zeros((512,512,3),dtype=np.uint8), width=800)
-fig.update_layout(dragmode="drawclosedpath")
+fig.update_layout(
+    dragmode="drawclosedpath",
+    newshape=dict(fillcolor="cyan", opacity=0.3, line=dict(color="darkblue", width=8))
+)
 config = {
     "modeBarButtonsToAdd": [
         "drawline",
@@ -33,6 +36,7 @@ config = {
         "drawrect",
         "eraseshape",
     ]
+
 }
 
 app = DjangoDash('semantic_annotation')
@@ -104,6 +108,9 @@ def display_output(img_id, session_state = None):
     img = cv2.cvtColor(cv2.imread(dset_Instance.img_fn), cv2.COLOR_BGR2RGB)
 
     fig = px.imshow(img, height=800, width=1200)
-    fig.update_layout(dragmode="drawclosedpath")
+    fig.update_layout(
+        dragmode="drawclosedpath",
+        newshape=dict(fillcolor="cyan", opacity=0.2, line=dict(color="darkblue", width=8))
+    )
 
     return fig

@@ -14,7 +14,14 @@
 <div class="feature-ann-container">
     <div>
         <!-- image here -->
-        <img src={{img}}></img> 
+        <div>
+            <img src={{img}}></img> 
+        </div>
+        <div>
+            <img src={{img_plain}}></img> 
+        </div>
+        <div><img src="{% static 'images/CAR_TYPES.png' %}" /></div>
+        
     </div>
     <div>
         <!-- forms here -->
@@ -40,6 +47,6 @@
         </form> 
     </div>
 </div>
-<div><img src="{% static 'images/CAR_TYPES.png' %}" /></div>
+
 
 {% endblock content%}

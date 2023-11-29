@@ -35,6 +35,8 @@ def run():
         full_img_fn = img_path / img_fn
         full_lbl_fn = lbl_path / img_fn.replace(img_ext, "xml")
 
+        set_index = int(img_name.split('_')[-1])
+
         if idx == 0:
             print(img_name, img_ext, "\n", full_lbl_fn) 
 
@@ -43,6 +45,7 @@ def run():
             img_name = img_name,
             img_fn = str(full_img_fn),
             lbl_fn = str(full_lbl_fn),
+            set_index = set_index,
             shapmap_path = shapmap_path
         )
 

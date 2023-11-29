@@ -20,13 +20,14 @@ class Dset_Instance(models.Model):
     img_name = models.TextField() ## name of image 
     img_fn = models.TextField() ## path to img on server
     lbl_fn = models.TextField() ## path to lbl filename on server
+    set_index = models.TextField() ## id used to sort the 
     shapmap_path = models.TextField(null=True, blank=True, default=None) ## path to shap map - if in use
     updated = models.DateTimeField(auto_now=True) ## update timestamp every time
     created = models.DateTimeField(auto_now_add=True) ## update timestamp only when created
     completed = models.BooleanField(null=True, blank=True, default=False)
 
     class Meta:
-        ordering = ['created', 'updated'] ## order items so oldest first
+        ordering = ['set_index'] ## sort by their index in the set - this should be their order in the collection
     def __str__(self) -> str:
          return self.img_name
 
@@ -66,7 +67,8 @@ class Discriminative_Features(models.Model):
         ("9", "White"),
         ("10", "multicolour"),
         ("11", "other"),
-        ("12", "Not Applicable")
+        ("12", "Not Applicable"),
+        ("13", "Too Distant"),
     )
     colour = models.CharField(max_length=2, choices=CAR_COLORS)
 
@@ -84,7 +86,9 @@ class Discriminative_Features(models.Model):
         ("10", "Small Misc"),
         ("11", "London Taxi"),
         ("12", "London Bus"),
-        ("13", "Not Applicable")
+        ("13", "Not Applicable"),
+        ("13", "Too Distant"),
+
     )
     body_shape = models.CharField(max_length=2, choices=BODY_SHAPES)
 
@@ -92,14 +96,28 @@ class Discriminative_Features(models.Model):
         ("1", "FRONT"),
         ("2", "FRONT LEFT"),
         ("3", "LEFT"),
-        ("4", "BACK LEFT"),
-        ("5", "BACK"),
-        ("6", "BACK RIGHT"),
+        ("4", "REAR LEFT"),
+        ("5", "REAR"),
+        ("6", "REAR RIGHT"),
         ("7", "RIGHT"),
         ("8", "FRONT RIGHT"),
-        ("9", "Not Applicable")
+        ("9", "Not Applicable"),
     )
     viewing_angle = models.CharField(max_length=2, choices=VIEWING_ANGLES)
+
+    CURRENT_STATE = (
+        ("1", "In my lane, in front"),
+        ("2", "Parked on left side of the street"),
+        ("3", "Parked on right side of the street"),
+        ("4", "In oncoming lane"),
+        ("5", "Crossing my lane"),
+        ("5", "Entering my lane from LEFT"),
+        ("6", "Entering my lane from RIGHT"),
+        ("7", "In left lane (MULTI-LANE)"),
+        ("8", "In right lane (MULTI-LANE)"),
+        ("9", "Not Applicable"),
+    )
+    current_state = models.CharField(max_length=2, choices=CURRENT_STATE)
     
     def __str__(self) -> str:
         return "{} BELONGING TO {}".format(self.__class__.__name__, str(self.parent))

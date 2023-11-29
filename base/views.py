@@ -58,6 +58,7 @@ def discriminative_feature_page(request : WSGIRequest, pk):
     img_objects = DSet_object.objects.filter(parent__id = pk)
 
     img = cv2.imread(dset_Instance.img_fn)
+    img_plain = np.copy(img)
 
     initial_value = []
 
@@ -71,21 +72,34 @@ def discriminative_feature_page(request : WSGIRequest, pk):
         if obj.semantic_points is not None:
             points = np.frombuffer(base64.b64decode(obj.semantic_points), dtype=np.float64).astype(int)
             points = points.reshape(-1, 2)
-            img = cv2.polylines(img, [points], True, color, 2)
+            img = cv2.polylines(img, [points], True, color, 1)
 
         ## get box coords and draw that 
         box = np.frombuffer(base64.b64decode(obj.bounding_box), dtype=np.float64).astype(int)
 
-        img = cv2.rectangle(img, box[:2], box[2:], color, 2)
+        img = cv2.rectangle(img, box[:2], box[2:], color, 1)
+        w_h = box[2:] - box[:2]
+        a = w_h[0] * w_h[1]
+        # print(idx, a)
 
-        centre = ((box[:2]+box[2:])//2).astype(int)
+        if a > 5000:
+            idx_loc = ((box[:2]+box[2:])//2).astype(int)
+        elif box[0] >= img.shape[0]//2:
+            idx_loc = (box[0] - 5, box[1])
+        else:
+            idx_loc = (box[2], box[3])
 
-        img = cv2.putText(img, str(idx), centre, cv2.FONT_HERSHEY_SIMPLEX, 1, color, 2, cv2.LINE_AA)
+        print(idx, w_h, idx_loc, box)
+
+        img = cv2.putText(img, str(idx), idx_loc, cv2.FONT_HERSHEY_SIMPLEX, 1, color, 1, cv2.LINE_AA)
 
     ## process image for displaying
     ret, frame_buff = cv2.imencode('.jpg', img) #could be png, update html as well
-    frame_b64 = base64.b64encode(frame_buff)
-    frame_string = u'data:img/jpeg;base64,' + frame_b64.decode('utf-8') 
+    frame_string = u'data:img/jpeg;base64,' + base64.b64encode(frame_buff).decode('utf-8') 
+
+    ## process plain image for display 
+    ret, frame_buff_plain = cv2.imencode('.jpg', img_plain) #could be png, update html as well
+    frame_string_plain = u'data:img/jpeg;base64,' + base64.b64encode(frame_buff_plain).decode('utf-8') 
 
     ## generate forms 
     formset = formset_factory(Discriminative_Features_Form, extra=len(initial_value)-1, max_num=len(initial_value))
@@ -108,7 +122,7 @@ def discriminative_feature_page(request : WSGIRequest, pk):
     else:
         formset = formset(initial = initial_value)
 
-    context = {"img" : frame_string, "formset" : formset}
+    context = {"img" : frame_string, "img_plain" : frame_string_plain, "formset" : formset}
 
     return render(request, 'base/discriminative_feature.html', context=context)
 

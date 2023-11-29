@@ -27,7 +27,7 @@ DEBUG = True
 
 # https://docs.djangoproject.com/en/1.10/ref/settings/#allowed-hosts
 # https://stackoverflow.com/questions/25550116/access-django-app-from-other-computers 
-ALLOWED_HOSTS = ['192.168.0.59', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['*']
 
 # Application definition
 
