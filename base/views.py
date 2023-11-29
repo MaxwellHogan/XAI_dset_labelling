@@ -93,6 +93,7 @@ def discriminative_feature_page(request : WSGIRequest, pk):
     if request.method == 'POST': 
         formset = formset(request.POST)
         if formset.is_valid(): 
+            
             for obj, form in zip(img_objects, formset): 
                 obj_features = form.save(commit=False)
                 obj_features.parent = obj
@@ -102,6 +103,8 @@ def discriminative_feature_page(request : WSGIRequest, pk):
             dset_Instance.completed = True
             dset_Instance.save()
             return redirect("main")
+        else: 
+            print("error")
     else:
         formset = formset(initial = initial_value)
 

@@ -21,7 +21,7 @@
         <form method="POST" enctype="multipart/form-data"> 
             
             <!-- Management data of formset -->
-            {{ formset.management_data }} 
+            {{ formset.management_form }} 
         
             <!-- Security token -->
             {% csrf_token %} 
@@ -36,7 +36,7 @@
                 {% endif %}
             {% endfor %}
             
-            <input type="submit" value="Submit"> 
+            <input class="btn btn-primary" type="submit" value="Submit"> 
         </form> 
     </div>
 </div>

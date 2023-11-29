@@ -11,4 +11,4 @@ To prepare the sqlite database (that will store the info like the image filename
 python manage.py runscript load_instances
 
 if the database needs to be reset, call the following:
-python manage.py help flush
+python manage.py flush

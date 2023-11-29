@@ -50,7 +50,7 @@ class Discriminative_Features(models.Model):
     """
     id = models.UUIDField(primary_key = True, default = uuid.uuid4, auto_created=True)
     parent = models.ForeignKey(DSet_object, on_delete=models.CASCADE) ## belongs to Dset_object 
-    counter = models.IntegerField()
+    counter = models.IntegerField(null=True, blank=True, default=0)
     
     ## Choices for additional classes 
     CAR_COLORS = (
