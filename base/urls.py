@@ -10,5 +10,6 @@ urlpatterns = [
     path('logout/', views.logoutUser, name="logout"),
     path('main/', views.main, name ="main"),
     path('semantic_ann_page/<slug:pk>/', views.semantic_ann_page, name ="semantic_ann_page"),
-    path('discriminative_feature_page/<slug:pk>/', views.discriminative_feature_page, name ="discriminative_feature_page")
+    path('discriminative_feature_page/<slug:pk>/', views.discriminative_feature_page, name ="discriminative_feature_page"),
+    path('summary_page/', views.summary_page, name ="summary_page"),
 ]

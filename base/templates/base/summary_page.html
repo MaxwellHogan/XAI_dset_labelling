@@ -1,0 +1,36 @@
+{% extends 'main.html' %}
+
+{% block content %}
+{% load static %}
+<!-- <style>
+    .feature-ann-container{
+        display: grid;
+        /* below is how to create two columns - one small column 1 fraction (1/4) the size of the page */
+        grid-template-columns: 1fr 1fr;  
+    }
+</style> -->
+
+
+<div>
+    <a href="{% url 'main' %}">Back to work</a>
+    <h1>Summary of Labelled Data</h1>
+    <hr>
+    <h3>We have so far labelled {{complete_instances}} of {{total_instances}} images.</h3>
+    <hr>
+    <div>
+        <div style="width:600;height:500">
+            {{ bargraph|safe }}
+        </div>
+    </div>
+    <div>
+        <!-- {% for class_stat in class_stats %}
+            <div><h5>{{class_stat.name}} : {{class_stat.count}}</h5></div>
+        {% endfor %} -->
+        <div style="width:600;height:500">
+            {{ matgraph|safe }}
+        </div>
+    </div>
+</div>
+
+
+{% endblock content%}

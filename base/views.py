@@ -6,15 +6,20 @@ from django.contrib.auth import authenticate, login, logout
 from django.forms import formset_factory
 # Create your views here.
 
-from .models import Dset_Instance, DSet_object
+from .models import Dset_Instance, DSet_object, Discriminative_Features
 from .forms import Discriminative_Features_Form
 
 from django.core.handlers.wsgi import WSGIRequest
+from django.db.models import Count
 
 import cv2
 import numpy as np
 import pickle
 import base64
+
+## static plotting stuff - using plotly-dash-django for interactive plots 
+from plotly.offline import plot
+import plotly.express as px
 
 def loginPage(request : WSGIRequest):
     page = "login"
@@ -136,3 +141,64 @@ def main(request : WSGIRequest):
 
     return redirect('semantic_ann_page', pk = dset_Instance.id)
 
+
+@login_required(login_url="login")
+def summary_page(request : WSGIRequest):
+
+    total_instances = Dset_Instance.objects.all().count()
+    complete_instances = Dset_Instance.objects.filter(completed = 1).count()
+
+    ## create matrix for car colour/shape
+    car_data = np.zeros((
+        len(Discriminative_Features.CAR_COLORS) -2, ## ignore "Not Applicable"
+        len(Discriminative_Features.BODY_SHAPES) - 2, 
+    ), dtype = int)
+    car_colours = [colour[-1] for colour in Discriminative_Features.CAR_COLORS[:-2]]
+    car_bodies = [body[-1] for body in Discriminative_Features.BODY_SHAPES[:-2]]
+
+    class_stats = []
+    for class_name in Discriminative_Features.CLASS_NAME:
+        ## skip the class I made for mistake 
+        if class_name[-1] == "mistake":
+            continue 
+
+        class_objects = Discriminative_Features.objects.filter(class_name = class_name[0])
+        
+        class_stats.append({
+            "name" : class_name[-1],
+            "count" : class_objects.count(),
+            })
+        
+        ## if this is the class of car add
+        if class_name[-1] == "Car": 
+            for colour in Discriminative_Features.CAR_COLORS:
+                if colour[-1] in ["Not Applicable", "Too Distant"]:
+                    continue
+            
+                for body in Discriminative_Features.BODY_SHAPES:
+                    if body[-1] in ["Not Applicable", "Too Distant"]:
+                        continue
+                    
+                    car_data[int(colour[0])-1, int(body[0])-1] = class_objects.filter(colour = colour[0], body_shape = body[0]).count()
+
+        
+    fig_bar = px.bar(class_stats, x='name', y='count', template="plotly_dark")
+
+    fig_mat = px.imshow(
+                        car_data,
+                        labels={'y' : "Colours", 'x' : "Body Shapes"},
+                        y = car_colours,
+                        x = car_bodies,
+                        template="plotly_dark",
+                        )
+
+    context = {
+        "total_instances" : total_instances,
+        "complete_instances" : complete_instances,
+        "class_stats" : class_stats,
+        "bargraph" : fig_bar.to_html(),
+        "matgraph" : fig_mat.to_html(),
+
+        }
+
+    return render(request, 'base/summary_page.html', context=context)

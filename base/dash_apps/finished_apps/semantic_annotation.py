@@ -29,10 +29,10 @@ fig.update_layout(
 )
 config = {
     "modeBarButtonsToAdd": [
-        "drawline",
-        "drawopenpath",
+        # "drawline",
+        # "drawopenpath",
         "drawclosedpath",
-        "drawcircle",
+        # "drawcircle",
         "drawrect",
         "eraseshape",
     ]
@@ -107,7 +107,7 @@ def display_output(img_id, session_state = None):
 
     img = cv2.cvtColor(cv2.imread(dset_Instance.img_fn), cv2.COLOR_BGR2RGB)
 
-    fig = px.imshow(img, height=800, width=1200)
+    fig = px.imshow(img, height=800, width=1200, template="plotly_dark")
     fig.update_layout(
         dragmode="drawclosedpath",
         newshape=dict(fillcolor="cyan", opacity=0.2, line=dict(color="darkblue", width=8))
