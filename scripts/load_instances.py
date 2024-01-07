@@ -27,7 +27,7 @@ def run():
         raise Exception("Image path supplied is empty!")
 
     ## delete old instances 
-    Dset_Instance.objects.all().delete()
+    # Dset_Instance.objects.all().delete() 
 
     for idx, img_fn in enumerate(img_content):
 

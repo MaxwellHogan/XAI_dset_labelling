@@ -60,6 +60,8 @@ class Discriminative_Features(models.Model):
         ("4","Pedestrian"),
         ("5","Car"),
         ("6","mistake"),
+        ("7","MotorBike"),
+        ("8","Cyclist (on road only)"),
     )
     class_name = models.CharField(max_length=2, choices=CLASS_NAME, default="5")
 
@@ -69,6 +71,7 @@ class Discriminative_Features(models.Model):
         ("3","tree or other foliage"),
         ("4","other"),
         ("5","Not Applicable"),
+        ("6","Phone Box"),
     )
     static_obstacle_class = models.CharField(max_length=2, choices=STATIC_OBS_CLASS_NAME, default="5")
     
@@ -78,6 +81,9 @@ class Discriminative_Features(models.Model):
         ("3","GREEN"),
         ("4","RED-YELLOW"),
         ("5","Not Applicable"),
+        ("6","Pedestrian Red"),
+        ("7","Pedestrian Green"),
+        ("8","Not visable/non-working"),
     )
     traffic_light_state = models.CharField(max_length=2, choices=TRAFFIC_LIGHT_STATE, default="5")
 
@@ -91,10 +97,10 @@ class Discriminative_Features(models.Model):
         ("6", "Yellow"),
         ("7", "Orange"),
         ("8", "Red"),
-        ("9", "Silver"),
         ("9", "White"),
         ("10", "multicolour"),
         ("11", "other"),
+        ("14", "Silver"), ## many mislabelled as white at the start
         ("12", "Not Applicable"),
         ("13", "Too Distant"),
     )
@@ -144,6 +150,8 @@ class Discriminative_Features(models.Model):
         ("7", "In left lane (MULTI-LANE)"),
         ("8", "In right lane (MULTI-LANE)"),
         ("9", "Not Applicable"),
+        ("10", "Entering from Junction on the RIGHT"),
+        ("11", "Entering from Junction on the LEFT"),
     )
     current_state = models.CharField(max_length=2, choices=CURRENT_STATE, default="9")
 

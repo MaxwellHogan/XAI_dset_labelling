@@ -113,4 +113,7 @@ def display_output(img_id, session_state = None):
         newshape=dict(fillcolor="cyan", opacity=0.2, line=dict(color="darkblue", width=8))
     )
 
+    ## can be used to init with stuff detected by an ai 
+    ## fig.add_selection(path="M2,6.5L4,7.5L4,6Z") 
+
     return fig

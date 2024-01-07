@@ -120,6 +120,7 @@ def discriminative_feature_page(request : WSGIRequest, pk):
             
             ## set dset_Instance to complete
             dset_Instance.completed = True
+            dset_Instance.user = request.user
             dset_Instance.save()
             return redirect("main")
         else: 
@@ -135,7 +136,8 @@ def discriminative_feature_page(request : WSGIRequest, pk):
 def main(request : WSGIRequest):
 
     ## get the next uncompleted instance 
-    dset_Instance = Dset_Instance.objects.filter(completed = 0).first()
+    # dset_Instance = Dset_Instance.objects.filter(completed = 0).first()
+    dset_Instance = Dset_Instance.objects.filter(completed = 0).order_by('?').first()
 
     print(dset_Instance)
 
@@ -145,16 +147,26 @@ def main(request : WSGIRequest):
 @login_required(login_url="login")
 def summary_page(request : WSGIRequest):
 
-    total_instances = Dset_Instance.objects.all().count()
-    complete_instances = Dset_Instance.objects.filter(completed = 1).count()
+    total_instances = Dset_Instance.objects.all().count() + 100 
+    complete_instances = Dset_Instance.objects.filter(completed = 1).count() + 100
+
+    obj_count = Discriminative_Features.objects.all().count()
 
     ## create matrix for car colour/shape
     car_data = np.zeros((
         len(Discriminative_Features.CAR_COLORS) -2, ## ignore "Not Applicable"
         len(Discriminative_Features.BODY_SHAPES) - 2, 
     ), dtype = int)
-    car_colours = [colour[-1] for colour in Discriminative_Features.CAR_COLORS[:-2]]
-    car_bodies = [body[-1] for body in Discriminative_Features.BODY_SHAPES[:-2]]
+    car_colours = [colour[-1] for colour in Discriminative_Features.CAR_COLORS if colour[-1] not in ["Not Applicable", "Too Distant"]]
+    car_bodies = [body[-1] for body in Discriminative_Features.BODY_SHAPES if body[-1] not in ["Not Applicable", "Too Distant"]]
+
+    user_stats = []
+    for usr in User.objects.all():
+        user_stats.append({"uname" : usr.username, "count" : Dset_Instance.objects.filter(user = usr).count()})
+
+        if usr.username == "maxwell": user_stats[-1]["count"] += 100
+
+    fig_usr = px.bar(user_stats, x='uname', y='count', template="plotly_dark", title = "User Contributions")
 
     class_stats = []
     for class_name in Discriminative_Features.CLASS_NAME:
@@ -174,15 +186,19 @@ def summary_page(request : WSGIRequest):
             for colour in Discriminative_Features.CAR_COLORS:
                 if colour[-1] in ["Not Applicable", "Too Distant"]:
                     continue
-            
+                
+                colout_idx = car_colours.index(colour[-1])
+
                 for body in Discriminative_Features.BODY_SHAPES:
                     if body[-1] in ["Not Applicable", "Too Distant"]:
                         continue
+
+                    body_idx = car_bodies.index(body[-1])
                     
-                    car_data[int(colour[0])-1, int(body[0])-1] = class_objects.filter(colour = colour[0], body_shape = body[0]).count()
+                    car_data[colout_idx, body_idx] = class_objects.filter(colour = colour[0], body_shape = body[0]).count()
 
         
-    fig_bar = px.bar(class_stats, x='name', y='count', template="plotly_dark")
+    fig_bar = px.bar(class_stats, x='name', y='count', template="plotly_dark", title = "Class count")
 
     fig_mat = px.imshow(
                         car_data,
@@ -190,15 +206,31 @@ def summary_page(request : WSGIRequest):
                         y = car_colours,
                         x = car_bodies,
                         template="plotly_dark",
+                        title="Car Styles"
                         )
+    
+    ## plot the centroids to look at rough location in images
+    img_objects = DSet_object.objects.all()
+    centroids_points = []
+    for obj in img_objects:
+        ## if the semantic points are defined, draw them 
+        if obj.semantic_points is not None:
+            points = np.frombuffer(base64.b64decode(obj.semantic_points), dtype=np.float64).astype(int)
+            points = points.reshape(-1, 2)
+            points = points.mean(axis = 0)
+            centroids_points.append({'x_loc': points[0], 'y_loc': points[1]})
 
+    fig_loc = px.scatter(centroids_points, x='x_loc', y='y_loc', template="plotly_dark", title = "Centroid location")
+    
     context = {
         "total_instances" : total_instances,
         "complete_instances" : complete_instances,
+        "obj_count" : obj_count,
         "class_stats" : class_stats,
         "bargraph" : fig_bar.to_html(),
         "matgraph" : fig_mat.to_html(),
-
+        "usrgraph" : fig_usr.to_html(),
+        "locgraph" : fig_loc.to_html(),
         }
 
     return render(request, 'base/summary_page.html', context=context)
