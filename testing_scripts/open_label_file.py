@@ -55,6 +55,8 @@ mask = np.genfromtxt(mask_path, delimiter=",")
 lbls = pd.read_csv(lbl_path)
 # lbls.head()
 wanted_catagories = [0,1,2,3,5,7,9,11]
+
+
 for idx, row in lbls.iterrows():
     class_name = row["category_id"]
     if class_name not in wanted_catagories:
@@ -72,4 +74,26 @@ for idx, row in lbls.iterrows():
     mask_i = cv2.polylines(mask_i, [poly], True, (0,0,255), 1)
 
     cv2.imwrite(str(output_path / ("mask_{}.png".format(idx))), mask_i)
-    
+
+
+def parse_pred(filename):
+    mask_path = pred_path / "masks" / (filename + ".csv")
+    lbl_path  = pred_path / "labels" / (filename + ".csv")
+
+    ## load the data
+    mask = np.genfromtxt(mask_path, delimiter=",")
+    lbls = pd.read_csv(lbl_path)
+
+    ## list to hold selection strings 
+    selections = []
+
+    for _, row in lbls.iterrows():
+        mask_i = mask == row["id"]
+        contours, hierarchy, has_holes = mask_to_polygons(mask_i)
+
+        ## currently using top poly - will ignore holes and splits in body 
+        selections.append("M" + "L".join([",".join(map(str, p)) for p in contours[0].reshape(-1, 2).tolist()]) +"Z")
+
+    return selections
+
+print(parse_pred(filename))

@@ -72,6 +72,8 @@ class Discriminative_Features(models.Model):
         ("4","other"),
         ("5","Not Applicable"),
         ("6","Phone Box"),
+        ("7","Traffic sign"),
+
     )
     static_obstacle_class = models.CharField(max_length=2, choices=STATIC_OBS_CLASS_NAME, default="5")
     

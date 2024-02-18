@@ -21,6 +21,7 @@ import base64
 from plotly.offline import plot
 import plotly.express as px
 
+
 def loginPage(request : WSGIRequest):
     page = "login"
     if request.user.is_authenticated:
@@ -55,6 +56,32 @@ def semantic_ann_page(request : WSGIRequest, pk):
     context = {"img_id" : pk, "dash_context": {"img-id" : {"value" : pk}}}
     return render(request, 'base/semantic_ann_interface.html', context)
 
+'''
+    Convert hsv code to rgb code
+        I use it when generating evenly spaced colour palettes for plotting
+'''
+
+def random_color():
+    h = np.random.uniform(0, 1, 1)[0]
+    s = np.random.uniform(0, 1, 1)[0]
+    v = 1
+
+    if h == 1.0: h = 0.0
+    i = int(h*6.0); f = h*6.0 - i
+    
+    w = int(255*( v * (1.0 - s) ))
+    q = int(255*( v * (1.0 - s * f) ))
+    t = int(255*( v * (1.0 - s * (1.0 - f)) ))
+    v = int(255*v)
+    
+    if i==0: return (v, t, w)
+    if i==1: return (q, v, w)
+    if i==2: return (w, v, t)
+    if i==3: return (w, q, v)
+    if i==4: return (t, w, v)
+    if i==5: return (v, w, q)
+
+
 @login_required(login_url="login")
 def discriminative_feature_page(request : WSGIRequest, pk):
 
@@ -62,27 +89,34 @@ def discriminative_feature_page(request : WSGIRequest, pk):
     dset_Instance = Dset_Instance.objects.get(id = pk)
     img_objects = DSet_object.objects.filter(parent__id = pk)
 
-    img = cv2.imread(dset_Instance.img_fn)
-    img_plain = np.copy(img)
+    img_plain = cv2.imread(dset_Instance.img_fn)
+    img = np.copy(img_plain)
+    individual_imgs = []
 
     initial_value = []
 
     for idx, obj in enumerate(img_objects):
         initial_value.append({"parent" : obj, "counter" : idx})
+
+        img_idx = np.copy(img_plain)
         
         ## generate a random color 
-        color = np.random.randint(0, 255, 3).tolist()
+        color = random_color()
 
         ## if the semantic points are defined, draw them 
         if obj.semantic_points is not None:
             points = np.frombuffer(base64.b64decode(obj.semantic_points), dtype=np.float64).astype(int)
             points = points.reshape(-1, 2)
             img = cv2.polylines(img, [points], True, color, 1)
+            img_idx = cv2.polylines(img_idx, [points], True, (125,125,255), 1)
+
 
         ## get box coords and draw that 
         box = np.frombuffer(base64.b64decode(obj.bounding_box), dtype=np.float64).astype(int)
 
         img = cv2.rectangle(img, box[:2], box[2:], color, 1)
+        img_idx = cv2.rectangle(img_idx, box[:2], box[2:], (125,125,255), 1)
+
         w_h = box[2:] - box[:2]
         a = w_h[0] * w_h[1]
         # print(idx, a)
@@ -97,6 +131,11 @@ def discriminative_feature_page(request : WSGIRequest, pk):
         print(idx, w_h, idx_loc, box)
 
         img = cv2.putText(img, str(idx), idx_loc, cv2.FONT_HERSHEY_SIMPLEX, 1, color, 1, cv2.LINE_AA)
+
+        ## process image for displaying
+        ret, frame_buff_idx = cv2.imencode('.jpg', img_idx) #could be png, update html as well
+        frame_img_idx = u'data:img/jpeg;base64,' + base64.b64encode(frame_buff_idx).decode('utf-8') 
+        individual_imgs.append(frame_img_idx)
 
     ## process image for displaying
     ret, frame_buff = cv2.imencode('.jpg', img) #could be png, update html as well
@@ -128,7 +167,7 @@ def discriminative_feature_page(request : WSGIRequest, pk):
     else:
         formset = formset(initial = initial_value)
 
-    context = {"img" : frame_string, "img_plain" : frame_string_plain, "formset" : formset}
+    context = {"img" : frame_string, "img_plain" : frame_string_plain, "formset" : formset, "individual_imgs": individual_imgs}
 
     return render(request, 'base/discriminative_feature.html', context=context)
 
@@ -139,7 +178,7 @@ def main(request : WSGIRequest):
     # dset_Instance = Dset_Instance.objects.filter(completed = 0).first()
     dset_Instance = Dset_Instance.objects.filter(completed = 0).order_by('?').first()
 
-    print(dset_Instance)
+    print(dset_Instance, request.user)
 
     return redirect('semantic_ann_page', pk = dset_Instance.id)
 
@@ -164,7 +203,7 @@ def summary_page(request : WSGIRequest):
     for usr in User.objects.all():
         user_stats.append({"uname" : usr.username, "count" : Dset_Instance.objects.filter(user = usr).count()})
 
-        if usr.username == "maxwell": user_stats[-1]["count"] += 100
+        if usr.username == "maxwell": user_stats[-1]["count"] += 320
 
     fig_usr = px.bar(user_stats, x='uname', y='count', template="plotly_dark", title = "User Contributions")
 

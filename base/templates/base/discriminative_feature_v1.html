@@ -1,0 +1,59 @@
+{% extends 'main.html' %}
+
+{% block content %}
+{% load static %}
+<style>
+    .feature-ann-container{
+        display: grid;
+        /* below is how to create two columns - one small column 1 fraction (1/4) the size of the page */
+        grid-template-columns: 1fr 1fr;  
+    }
+</style>
+
+<style>
+    .fixedImg{
+        position: fixed;
+        /* margin-top: auto;  */
+        top: 80px; 
+    }
+</style>
+
+<div class="feature-ann-container">
+    <div>
+        <!-- image here -->
+        <div>
+            <img class = "fixedImg", src={{img}}></img> 
+        </div>
+        <div>
+            <img src={{img_plain}}></img> 
+        </div>
+        <div><img src="{% static 'images/CAR_TYPES.png' %}" /></div>
+        
+    </div>
+    <div>
+        <!-- forms here -->
+        <form method="POST" enctype="multipart/form-data"> 
+            
+            <!-- Management data of formset -->
+            {{ formset.management_form }} 
+        
+            <!-- Security token -->
+            {% csrf_token %} 
+        
+            <!-- Using the formset -->
+            <!-- {{ formset.as_p }}  -->
+            {% for form in formset.forms %}
+                <h2>Labels for object {{ forloop.counter0 }}:</h2>
+                {{ form.as_p }}
+                {% if not forloop.last %}
+                    <hr/>
+                {% endif %}
+            {% endfor %}
+            
+            <input class="btn btn-primary" type="submit" value="Submit"> 
+        </form> 
+    </div>
+</div>
+
+
+{% endblock content%}

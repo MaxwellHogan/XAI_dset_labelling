@@ -2,6 +2,7 @@
 
 {% block content %}
 {% load static %}
+{% load index %}
 <style>
     .feature-ann-container{
         display: grid;
@@ -10,42 +11,49 @@
     }
 </style>
 
+<style>
+    .fixedImg{
+        position: fixed;
+        /* margin-top: auto;  */
+        top: 80px; 
+    }
+</style>
 
 <div class="feature-ann-container">
     <div>
-        <!-- image here -->
-        <div>
-            <img src={{img}}></img> 
-        </div>
-        <div>
-            <img src={{img_plain}}></img> 
-        </div>
-        <div><img src="{% static 'images/CAR_TYPES.png' %}" /></div>
-        
+        <img src={{img}}></img> 
     </div>
     <div>
-        <!-- forms here -->
-        <form method="POST" enctype="multipart/form-data"> 
-            
-            <!-- Management data of formset -->
-            {{ formset.management_form }} 
-        
-            <!-- Security token -->
-            {% csrf_token %} 
-        
-            <!-- Using the formset -->
-            <!-- {{ formset.as_p }}  -->
-            {% for form in formset.forms %}
-                <h2>Labels for object {{ forloop.counter0 }}:</h2>
-                {{ form.as_p }}
-                {% if not forloop.last %}
-                    <hr/>
-                {% endif %}
-            {% endfor %}
-            
-            <input class="btn btn-primary" type="submit" value="Submit"> 
-        </form> 
+        <img src="{% static 'images/CAR_TYPES.png' %}" />
     </div>
+</div>
+
+<div>
+    <!-- forms here -->
+    <form method="POST" enctype="multipart/form-data"> 
+        
+        <!-- Management data of formset -->
+        {{ formset.management_form }} 
+    
+        <!-- Security token -->
+        {% csrf_token %} 
+    
+        <!-- Using the formset -->
+        <!-- {{ formset.as_p }}  -->
+        {% for form in formset.forms %}
+            <h2>Labels for object {{ forloop.counter0 }}:</h2>
+            <div class="feature-ann-container">
+                <div>
+                    <img src={{ individual_imgs|index:forloop.counter0 }}></img> 
+                </div>
+                <div>
+                    {{ form.as_p }}
+                </div>
+            </div>
+        {% endfor %}
+        
+        <input class="btn btn-primary" type="submit" value="Submit"> 
+    </form> 
 </div>
 
 
