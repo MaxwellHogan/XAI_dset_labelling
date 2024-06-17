@@ -19,7 +19,7 @@
     <h3>This includes {{obj_count}} objects in the labelled images.</h3>
     <hr>
     <div>
-        <div style="width:600;height:500; display:grid;grid-template-columns:1fr 1fr;">
+        <div style="width:600;height:1200; display:grid;grid-template-columns:1fr 1fr;">
             <div>{{ usrgraph|safe }}</div>
             <div>{{ bargraph|safe }}</div>
         </div>
@@ -28,9 +28,18 @@
         <!-- {% for class_stat in class_stats %}
             <div><h5>{{class_stat.name}} : {{class_stat.count}}</h5></div>
         {% endfor %} -->
-        <div style="width:600;height:500;display: grid;grid-template-columns:1fr 1fr;">
+        <div style="width:600;height:1200;display: grid;grid-template-columns:1fr 1fr;">
             <div>{{ locgraph|safe }}</div>
             <div>{{ matgraph|safe }}</div>
+        </div>
+    </div>
+    <div>
+        <!-- {% for class_stat in class_stats %}
+            <div><h5>{{class_stat.name}} : {{class_stat.count}}</h5></div>
+        {% endfor %} -->
+        <div style="width:600;height:1200;display: grid;grid-template-columns:1fr 1fr;">
+            <div>{{ facetgraph|safe }}</div>
+            <div>{{ staticObgraph|safe }}</div>
         </div>
     </div>
 </div>

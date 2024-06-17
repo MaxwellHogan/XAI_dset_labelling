@@ -1,3 +1,5 @@
 /Max_ReadMe.txt
-*.sqlite3
+*.sqlite3*
 /*/migrations
+
+sql_queries

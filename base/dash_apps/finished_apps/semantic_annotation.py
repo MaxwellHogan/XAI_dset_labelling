@@ -3,6 +3,7 @@ from dash import no_update, html, dcc
 from dash.dependencies import Input, Output
 from django_plotly_dash import DjangoDash
 from skimage import data
+import re
 import json
 import cv2
 import numpy as np
@@ -76,41 +77,51 @@ def mask_to_polygons(mask):
     return contours, hierarchy, has_holes
 
 ## define paths to label and mask files - later I will add this to the model 
-pred_path = Path("/media/maxwell/Lucky_chicken/output_files_20221209_1/panoptic_fpn_R_101_3x/")
 wanted_catagories = [0,1,2,3,5,7,9,11]
 
-def parse_pred(filename):
+def parse_pred(filename, pred_path = None):
+
+    if pred_path is None: pred_path = Path("/media/maxwell/Lucky_chicken/output_files_20221209_1/panoptic_fpn_R_101_3x/")
+    elif type(pred_path) is str: pred_path = Path(pred_path)
+    elif type(pred_path) is Path: pass ## do nothing if obj is already Path tpye
+    else: print("Attempting to parse prediciton file object of type:", type(pred_path))
+
     mask_path = pred_path / "masks" / (filename + ".csv")
     lbl_path  = pred_path / "labels" / (filename + ".csv")
 
     ## load the data
-    # try:
-    mask = np.genfromtxt(mask_path, delimiter=",")
-    lbls = pd.read_csv(lbl_path)
+    try:
+        mask = np.genfromtxt(mask_path, delimiter=",")
+        lbls = pd.read_csv(lbl_path)
 
-    ## list to hold selection strings 
-    selections = []
+        ## list to hold selection strings 
+        selections = []
 
-    for _, row in lbls.iterrows():
+        for _, row in lbls.iterrows():
 
-        ## check if we actually want this category 
-        class_name = row["category_id"]
-        if class_name not in wanted_catagories:
-            continue
-        
-        mask_i = mask == row["id"]
-        contours, hierarchy, has_holes = mask_to_polygons(mask_i)
+            ## check if we actually want this category 
+            class_name = row["category_id"]
+            if class_name not in wanted_catagories:
+                continue
+            
+            mask_i = mask == row["id"]
+            contours, hierarchy, has_holes = mask_to_polygons(mask_i)
 
-        ## currently using top poly - will ignore holes and splits in body 
-        selections.append("M" + "L".join([",".join(map(str, p)) for p in contours[0].reshape(-1, 2).tolist()]) +"Z")
+            ## currently using top poly - will ignore holes and splits in body 
+            selections.append("M" + "L".join([",".join(map(str, p)) for p in contours[0].reshape(-1, 2).tolist()]) +"Z")
 
-    return selections
-    # except:
-    #     return []
+        return selections
+    except:
+        return []
 
 def parse_shape(shapes : list, session_state):
 
+    ## we have started editing this image so need to mark it as incomplete
     img_id = session_state["img_id"] 
+    parent_Dset_Instance = Dset_Instance.objects.get(id = img_id) 
+    if parent_Dset_Instance.completed:
+        parent_Dset_Instance.completed = 0
+        parent_Dset_Instance.save()
 
     def parse_path(shape):
         points = shape["path"]
@@ -119,18 +130,19 @@ def parse_shape(shapes : list, session_state):
         points = np.array([(float(p0),float(p1)) for p0,p1 in points], dtype=np.float64)
         # print("Points", points)
 
-        box = np.array((points.min(axis=0), points.max(axis =0 ))).flatten()
+        box = np.array((points.min(axis=0), points.max(axis = 0))).flatten()
 
         return points, box
         
-
     ## delete old instances 
     DSet_object.objects.filter(parent__id = img_id).delete()
 
     for idx, shape in enumerate(shapes):
-        ## set up dataset onject - connect it to it's parent (the file)
+        ## set up dataset object - connect it to it's parent (the file)
         dSet_object = DSet_object(
-            parent = Dset_Instance.objects.get(id = img_id)
+            parent = parent_Dset_Instance,
+            img_name = parent_Dset_Instance.img_name,
+            counter = idx
         )
         if "type" in shape:
             if shape["type"] == "path":
@@ -156,6 +168,52 @@ def parse_shape(shapes : list, session_state):
 
         dSet_object.save()
 
+    print(parent_Dset_Instance.img_name, "\n" , [i.counter for i in DSet_object.objects.filter(parent__id = img_id).iterator()])
+
+def update_shape(key, shape, session_state):
+
+    shape_idx, _ = key.split('.')
+    shape_idx = int(re.search(r'\d+', shape_idx).group())
+
+    img_id = session_state["img_id"] 
+    parent_Dset_Instance = Dset_Instance.objects.get(id = img_id) 
+
+    def parse_path(points):
+        points = [p.split(",") for p in points.replace("M", "").replace("Z","").split("L")]
+        points = np.array([(float(p0),float(p1)) for p0,p1 in points], dtype=np.float64)
+
+        box = np.array((points.min(axis=0), points.max(axis = 0))).flatten()
+
+        return points, box
+
+    dSet_object = DSet_object.objects.filter(img_name = parent_Dset_Instance.img_name)
+    dSet_object = dSet_object.get(counter = shape_idx)
+
+    points, box = parse_path(shape)
+
+    dSet_object.semantic_points = base64.b64encode(points)
+    dSet_object.bounding_box = base64.b64encode(box)
+    dSet_object.save()
+
+
+def load_user_labels(dset_Instance):
+
+    selections = []
+
+    ## load previous user labels 
+    dSet_objects = DSet_object.objects.filter(parent__id = dset_Instance.id)
+    
+    for dSet_object in dSet_objects.iterator():
+        try:
+            points = np.frombuffer(base64.b64decode(dSet_object.semantic_points), dtype=np.float64).astype(int)
+            points = points.reshape(-1, 2)
+            selections.append("M" + "L".join([",".join(map(str, p)) for p in points.tolist()]) +"Z")
+        except Exception as error: 
+            print(dSet_object.id)
+            continue
+
+    return selections
+
 
 @app.callback(
     Output("annotations-data-pre", "children"),
@@ -163,11 +221,17 @@ def parse_shape(shapes : list, session_state):
     prevent_initial_call=True,
 )
 def on_new_annotation(relayout_data, session_state = None):
+    print("on_new_annotation called")
 
     if "shapes" in relayout_data:
         parse_shape(relayout_data["shapes"], session_state)
         return json.dumps(relayout_data["shapes"], indent=2)
     else:
+        ## if we are updating a single shape we need to run the following
+        for key in relayout_data:
+            if "shapes" in key:
+                update_shape(key, relayout_data[key], session_state)
+
         return no_update
 
 
@@ -189,10 +253,16 @@ def display_output(img_id, session_state = None):
         newshape=dict(fillcolor="rgba(125,0,125,.2)", line=dict(color="darkblue", width=2))
     )
 
-    ## parse the predicted labels from AI 
-    selections = parse_pred(dset_Instance.img_name)
-    ## fig.add_selection(path="M2,6.5L4,7.5L4,6Z") 
-    for sel in selections:
-        fig.add_shape(path=sel, editable=True)
+    if dset_Instance.completed == 0:
+        ## parse the predicted labels from AI 
+        selections = parse_pred(dset_Instance.img_name, pred_path=dset_Instance.pred_path)
+        ## fig.add_selection(path="M2,6.5L4,7.5L4,6Z") 
+        for sel in selections:
+            fig.add_shape(path=sel, editable=True)
+    else:
+        ## pares the user labels 
+        selections = load_user_labels(dset_Instance)
+        for sel in selections:
+            fig.add_shape(path=sel, editable=True)
 
     return fig

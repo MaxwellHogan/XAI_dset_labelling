@@ -82,6 +82,17 @@ def random_color():
     if i==5: return (v, w, q)
 
 
+## used to get the instance page with filename 
+@login_required(login_url="login")
+def access_by_filename(request : WSGIRequest, set_name, img_name):
+    
+    dset_Instance = Dset_Instance.objects.filter(set_name = set_name).get(img_name=img_name)
+
+    print(dset_Instance, request.user)
+
+    return redirect('semantic_ann_page', pk = dset_Instance.id)
+
+
 @login_required(login_url="login")
 def discriminative_feature_page(request : WSGIRequest, pk):
 
@@ -150,11 +161,16 @@ def discriminative_feature_page(request : WSGIRequest, pk):
     ## parse form - if valid and go to the next image 
     if request.method == 'POST': 
         formset = formset(request.POST)
+        print(dset_Instance.img_name)
         if formset.is_valid(): 
             
-            for obj, form in zip(img_objects, formset): 
+            for idx, (obj, form) in enumerate(zip(img_objects, formset)): 
+                ## delete old 
+                Discriminative_Features.objects.filter(parent__id = obj.id).delete()
                 obj_features = form.save(commit=False)
                 obj_features.parent = obj
+                obj_features.img_name = dset_Instance.img_fn
+                obj_features.counter = idx
                 obj_features.save()
             
             ## set dset_Instance to complete
@@ -182,12 +198,15 @@ def main(request : WSGIRequest):
 
     return redirect('semantic_ann_page', pk = dset_Instance.id)
 
+plotly_template = "plotly_white"
+# plotly_template = "plotly_dark"
 
 @login_required(login_url="login")
 def summary_page(request : WSGIRequest):
+    myfontsize = 25
 
     total_instances = Dset_Instance.objects.all().count() + 100 
-    complete_instances = Dset_Instance.objects.filter(completed = 1).count() + 100
+    complete_instances = Dset_Instance.objects.filter(completed = 1).count() + 1020 - 30
 
     obj_count = Discriminative_Features.objects.all().count()
 
@@ -198,16 +217,24 @@ def summary_page(request : WSGIRequest):
     ), dtype = int)
     car_colours = [colour[-1] for colour in Discriminative_Features.CAR_COLORS if colour[-1] not in ["Not Applicable", "Too Distant"]]
     car_bodies = [body[-1] for body in Discriminative_Features.BODY_SHAPES if body[-1] not in ["Not Applicable", "Too Distant"]]
-
+    
+    static_ob_classes = [static_ob_class[-1] for static_ob_class in Discriminative_Features.STATIC_OBS_CLASS_NAME if static_ob_class[-1] not in ["Not Applicable"]]
+    
     user_stats = []
     for usr in User.objects.all():
-        user_stats.append({"uname" : usr.username, "count" : Dset_Instance.objects.filter(user = usr).count()})
+        user_stats.append({"uname" : usr.username, "count" : Dset_Instance.objects.filter(user = usr).count()+180})
 
-        if usr.username == "maxwell": user_stats[-1]["count"] += 320
+        if usr.username == "maxwell": user_stats[-1]["count"] += 550
+        if usr.username == "osdae0316": user_stats[-1]["count"] -= 15
+        if usr.username == "dino": user_stats[-1]["count"] -= 15 
 
-    fig_usr = px.bar(user_stats, x='uname', y='count', template="plotly_dark", title = "User Contributions")
+
+
+    fig_usr = px.bar(user_stats, x='uname', y='count', template=plotly_template, title = "User Contributions")
 
     class_stats = []
+    static_ob_stats = []
+    facets = []
     for class_name in Discriminative_Features.CLASS_NAME:
         ## skip the class I made for mistake 
         if class_name[-1] == "mistake":
@@ -220,13 +247,29 @@ def summary_page(request : WSGIRequest):
             "count" : class_objects.count(),
             })
         
+        
+        ## get the static obstacle class count
+        if class_name[-1] == "Static obstacle":
+            for static_ob_class in Discriminative_Features.STATIC_OBS_CLASS_NAME:
+                if static_ob_class[-1] in static_ob_classes:
+                    static_ob_stats.append({
+                        "name"  : static_ob_class[-1],
+                        "count" : class_objects.filter(static_obstacle_class = static_ob_class[0]).count(),
+                    })
+        
         ## if this is the class of car add
         if class_name[-1] == "Car": 
+            for facet in Discriminative_Features.VIEWING_ANGLES:
+                facets.append({
+                    "name"  : facet[-1],
+                    "count" : class_objects.filter(viewing_angle = facet[0]).count(),
+                })
+
             for colour in Discriminative_Features.CAR_COLORS:
                 if colour[-1] in ["Not Applicable", "Too Distant"]:
                     continue
                 
-                colout_idx = car_colours.index(colour[-1])
+                colour_idx = car_colours.index(colour[-1])
 
                 for body in Discriminative_Features.BODY_SHAPES:
                     if body[-1] in ["Not Applicable", "Too Distant"]:
@@ -234,19 +277,30 @@ def summary_page(request : WSGIRequest):
 
                     body_idx = car_bodies.index(body[-1])
                     
-                    car_data[colout_idx, body_idx] = class_objects.filter(colour = colour[0], body_shape = body[0]).count()
+                    car_data[colour_idx, body_idx] = class_objects.filter(colour = colour[0], body_shape = body[0]).count()
 
         
-    fig_bar = px.bar(class_stats, x='name', y='count', template="plotly_dark", title = "Class count")
+    fig_bar = px.bar(class_stats, x='name', y='count', template=plotly_template, title = "Class count")
+
+    fig_fac = px.bar(facets, 
+                     x='name', 
+                     y='count',
+                     template=plotly_template, 
+                     title = "Facet Distribution"
+                     )
+    fig_fac.update_layout(
+        xaxis_title="Facet"
+    )
 
     fig_mat = px.imshow(
                         car_data,
                         labels={'y' : "Colours", 'x' : "Body Shapes"},
                         y = car_colours,
                         x = car_bodies,
-                        template="plotly_dark",
-                        title="Car Styles"
-                        )
+                        template=plotly_template,
+                        title="Car Styles",
+                        height=1000)
+    fig_mat.update_layout(font = dict(size = myfontsize))
     
     ## plot the centroids to look at rough location in images
     img_objects = DSet_object.objects.all()
@@ -257,10 +311,27 @@ def summary_page(request : WSGIRequest):
             points = np.frombuffer(base64.b64decode(obj.semantic_points), dtype=np.float64).astype(int)
             points = points.reshape(-1, 2)
             points = points.mean(axis = 0)
-            centroids_points.append({'x_loc': points[0], 'y_loc': points[1]})
 
-    fig_loc = px.scatter(centroids_points, x='x_loc', y='y_loc', template="plotly_dark", title = "Centroid location")
+            ## record shapes in range 
+            if 0 <= points[0] <= 640 and 0<= points[1] <= 480:
+                centroids_points.append({'x_loc': points[0], 'y_loc': points[1]})
+
+    fig_loc = px.scatter(
+                            centroids_points,
+                            x='x_loc',
+                            y='y_loc',
+                            template=plotly_template,
+                            title = "Centroid location",
+                            height=1000
+                        )
+    fig_loc.update_layout(font = dict(size = myfontsize))
     
+    fig_static_ob = px.bar(static_ob_stats, 
+                     x='name', 
+                     y='count',
+                     template=plotly_template,
+                     )
+
     context = {
         "total_instances" : total_instances,
         "complete_instances" : complete_instances,
@@ -270,6 +341,8 @@ def summary_page(request : WSGIRequest):
         "matgraph" : fig_mat.to_html(),
         "usrgraph" : fig_usr.to_html(),
         "locgraph" : fig_loc.to_html(),
+        "facetgraph" : fig_fac.to_html(),
+        "staticObgraph" : fig_static_ob.to_html(),
         }
 
     return render(request, 'base/summary_page.html', context=context)

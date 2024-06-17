@@ -1,0 +1,22 @@
+{
+    "sets" : [
+        "summer",
+        "winter"
+    ],
+    
+    "summer" : {
+    "img_path" : "/media/maxwell/Lucky_chicken/output_files_20221209_1/rgb",
+    "lbl_path" : "/media/maxwell/Lucky_chicken/output_files_20221209_1/xml_lbl",
+    "mask_path": "/media/maxwell/Lucky_chicken/output_files_20221209_1/mask",
+    "pred_path": "/media/maxwell/Lucky_chicken/output_files_20221209_1/panoptic_fpn_R_101_3x"
+    },
+
+    "winter" : {
+    "img_path" : "/media/maxwell/Lucky_chicken/output_files_20221214_2/rgb",
+    "lbl_path" : "/media/maxwell/Lucky_chicken/output_files_20221214_2/xml_lbl",
+    "mask_path": "/media/maxwell/Lucky_chicken/output_files_20221214_2/mask",
+    "pred_path": "/media/maxwell/Lucky_chicken/output_files_20221214_2/panoptic_fpn_R_101_3x"
+    },
+
+    "output_path" : "/media/maxwell/Lucky_chicken/young_dsets"
+}

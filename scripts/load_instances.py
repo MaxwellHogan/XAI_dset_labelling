@@ -8,6 +8,8 @@ import yaml
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 def run():
+
+    kill 
     yaml_path = BASE_DIR / "software_config.yaml"
     
     with open(yaml_path, 'r') as file:
@@ -16,6 +18,7 @@ def run():
     img_path = Path(software_config["img_path"])
     shapmap_path = software_config["shapmap_path"] if "shapmap_path" in software_config else None
     lbl_path = Path(software_config["lbl_path"])
+    pred_path = software_config["pred_path"]
 
     ## make sure the label path exists - create it if it does not
     lbl_path.mkdir(parents=True, exist_ok=True)
@@ -45,6 +48,7 @@ def run():
             img_name = img_name,
             img_fn = str(full_img_fn),
             lbl_fn = str(full_lbl_fn),
+            pred_path = str(pred_path),
             set_index = set_index,
             shapmap_path = shapmap_path
         )

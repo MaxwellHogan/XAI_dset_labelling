@@ -18,8 +18,10 @@ class Dset_Instance(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     id = models.UUIDField(primary_key = True, default = uuid.uuid4, editable = False, auto_created=True) ## unique id of the image
     img_name = models.TextField() ## name of image 
+    set_name = models.TextField(null=True, blank=True, default="summer")
     img_fn = models.TextField() ## path to img on server
     lbl_fn = models.TextField() ## path to lbl filename on server
+    pred_path = models.TextField(null=True, blank=True, default=None) ## path to initial predictions made by Deep network 
     set_index = models.TextField() ## id used to sort the 
     shapmap_path = models.TextField(null=True, blank=True, default=None) ## path to shap map - if in use
     updated = models.DateTimeField(auto_now=True) ## update timestamp every time
@@ -40,6 +42,8 @@ class DSet_object(models.Model):
     parent = models.ForeignKey(Dset_Instance, on_delete=models.CASCADE) ## belongs to image  
     bounding_box = models.BinaryField(null=True, blank=True, default=None)
     semantic_points = models.BinaryField(null=True, blank=True, default=None)
+    img_name = models.TextField(null=True, blank=True, default=None) ## name of image 
+    counter = models.IntegerField(null=True, blank=True, default=0)
 
     def __str__(self) -> str:
         return "{} BELONGING TO {}".format(self.__class__.__name__, str(self.parent))
@@ -52,6 +56,7 @@ class Discriminative_Features(models.Model):
     id = models.UUIDField(primary_key = True, default = uuid.uuid4, auto_created=True)
     parent = models.ForeignKey(DSet_object, on_delete=models.CASCADE) ## belongs to Dset_object 
     counter = models.IntegerField(null=True, blank=True, default=0)
+    img_name = models.TextField(null=True, blank=True, default=None) ## name of image 
 
     CLASS_NAME = (
         ("1","Drivable lane"),
